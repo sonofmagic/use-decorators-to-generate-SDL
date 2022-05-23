@@ -1,0 +1,66 @@
+{
+  "name": "npm-lib-template",
+  "version": "1.0.0",
+  "description": "npm-lib-template",
+  "main": "dist/index.js",
+  "module": "dist/index.es.js",
+  "types": "dist/types/index.d.ts",
+  "scripts": {
+    "dev": "yarn dts && cross-env NODE_ENV=development rollup -cw",
+    "build": "yarn clean && yarn dts && cross-env NODE_ENV=production rollup -c",
+    "build:tsc": "cross-env NODE_ENV=development tsc --build tsconfig.json",
+    "dts": "ttsc --emitDeclarationOnly -p tsconfig.dts.json",
+    "test": "jest",
+    "init:rename": "node scripts/init/rename.js",
+    "init:bin": "node scripts/init/bin.js",
+    "clean": "node scripts/clean.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonofmagic/npm-lib-template.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "keywords": [],
+  "author": "SonOfMagic <qq1324318532@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sonofmagic/npm-lib-template/issues"
+  },
+  "homepage": "https://github.com/sonofmagic/npm-lib-template#readme",
+  "devDependencies": {
+    "@rollup/plugin-alias": "^3.1.9",
+    "@rollup/plugin-commonjs": "^22.0.0",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-replace": "^4.0.0",
+    "@rollup/plugin-typescript": "^8.3.2",
+    "@tsconfig/recommended": "^1.0.1",
+    "@types/jest": "^27.5.0",
+    "@types/node": "^17.0.32",
+    "@typescript-eslint/eslint-plugin": "^5.23.0",
+    "@typescript-eslint/parser": "^5.23.0",
+    "cross-env": "^7.0.3",
+    "defu": "^6.0.0",
+    "del": "^6.0.0",
+    "eslint": "8.15.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "2.26.0",
+    "eslint-plugin-n": "^15.2.0",
+    "eslint-plugin-promise": "6.0.0",
+    "jest": "^28.1.0",
+    "rollup": "^2.72.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "ts-jest": "^28.0.2",
+    "ts-node": "^10.7.0",
+    "tslib": "^2.4.0",
+    "ttypescript": "^1.5.13",
+    "typescript": "^4.6.4",
+    "typescript-transform-paths": "^3.3.1"
+  }
+}
