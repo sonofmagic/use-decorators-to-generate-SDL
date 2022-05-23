@@ -1,7 +1,7 @@
 {
-  "name": "npm-lib-template",
+  "name": "use-decorators-to-generate-SDL",
   "version": "1.0.0",
-  "description": "npm-lib-template",
+  "description": "use-decorators-to-generate-SDL",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
   "types": "dist/types/index.d.ts",
@@ -13,11 +13,12 @@
     "test": "jest",
     "init:rename": "node scripts/init/rename.js",
     "init:bin": "node scripts/init/bin.js",
-    "clean": "node scripts/clean.js"
+    "clean": "node scripts/clean.js",
+    "raw": "node dist/index.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sonofmagic/npm-lib-template.git"
+    "url": "git+https://github.com/sonofmagic/use-decorators-to-generate-SDL.git"
   },
   "files": [
     "dist"
@@ -30,9 +31,9 @@
   "author": "SonOfMagic <qq1324318532@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/sonofmagic/npm-lib-template/issues"
+    "url": "https://github.com/sonofmagic/use-decorators-to-generate-SDL/issues"
   },
-  "homepage": "https://github.com/sonofmagic/npm-lib-template#readme",
+  "homepage": "https://github.com/sonofmagic/use-decorators-to-generate-SDL#readme",
   "devDependencies": {
     "@rollup/plugin-alias": "^3.1.9",
     "@rollup/plugin-commonjs": "^22.0.0",
@@ -62,5 +63,8 @@
     "ttypescript": "^1.5.13",
     "typescript": "^4.6.4",
     "typescript-transform-paths": "^3.3.1"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.1.13"
   }
 }

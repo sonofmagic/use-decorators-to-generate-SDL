@@ -1,11 +1,9 @@
-export const foo = 'bar'
+import 'reflect-metadata'
+import { Flowchart } from './decorators/Flowchart'
 
-export const wait = (timeout?: number) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(true)
-    }, timeout)
-  })
+@Flowchart()
+class MyChart {
+  A: undefined
+  B: undefined
+  C: undefined
 }
-
-export * from '@/util'
