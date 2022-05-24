@@ -11,22 +11,22 @@ import { Renderer } from './renderer'
 export class MyChart {
   @Node({ text: 'Hard', shape: 'square' })
   @LineTo({ to: 'B', text: 'Text' })
-    A = null
+    A: string
 
   @Node({ text: 'round', shape: 'round' })
   @LineTo({ to: 'C' })
-    B = null
+    B: string
 
   @Node({ text: 'Decision', shape: 'diamond' })
   @LineTo({ to: 'D', text: 'One' })
   @LineTo({ to: 'E', text: 'Two' })
-    C = null
+    C: string
 
   @Node({ text: 'Result 1', shape: 'square' })
-    D = null
+    D: string
 
   @Node({ text: 'Result 2', shape: 'square' })
-    E = null
+    E: string
 }
 
 const renderer = new Renderer()

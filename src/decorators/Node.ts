@@ -1,10 +1,15 @@
 import defu from 'defu'
 
 const NodeMetadataKey = Symbol('Node')
-
+const NodeFieldsMetadataKey = Symbol('NodeFields')
 export interface NodeOptions {
   text?: string
   shape?: 'diamond' | 'square' | 'round'
+}
+
+export interface NodeField {
+  key: string
+  value: string
 }
 
 const leftMap = {
@@ -30,16 +35,42 @@ export function Node (options: NodeOptions = {}) {
       shape: 'square',
       text: propertyKey.toString()
     })
-    Reflect.defineProperty(prototype, propertyKey, {
-      value: options.text ?? propertyKey.toString(),
-      configurable: true,
-      enumerable: true,
-      writable: true
-    })
+
+    const arr = getNodeFields(prototype)
+    if (Array.isArray(arr)) {
+      arr.push({
+        key: propertyKey,
+        value: options.text ?? propertyKey.toString()
+      })
+    } else {
+      Reflect.defineMetadata(
+        NodeFieldsMetadataKey,
+        [
+          {
+            key: propertyKey,
+            value: options.text ?? propertyKey.toString()
+          }
+        ],
+        prototype
+      )
+    }
+
     Reflect.defineMetadata(NodeMetadataKey, opt, prototype, propertyKey)
   }
 }
 
-export function getNode (target: any, propertyKey: string | symbol) {
+export function getNode (
+  target: any,
+  propertyKey: string | symbol
+): Required<NodeOptions> {
   return Reflect.getMetadata(NodeMetadataKey, target, propertyKey)
+}
+
+export function getNodeFields (
+  target: any,
+  propertyKey?: string | symbol
+): NodeField[] {
+  return propertyKey
+    ? Reflect.getMetadata(NodeFieldsMetadataKey, target, propertyKey)
+    : Reflect.getMetadata(NodeFieldsMetadataKey, target)
 }
