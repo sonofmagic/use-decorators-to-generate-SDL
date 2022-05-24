@@ -9,9 +9,10 @@ export class Renderer {
     res.push([instance.type, instance.direction])
     const keys = Reflect.ownKeys(instance).filter((k) => typeof k === 'string') as string[]
     for (const key of keys) {
+      let str
       const node = getNode(instance, key)
       if (node) {
-        res.push(renderNodeStr(key, node))
+        str += renderNodeStr(key, node)
       }
       const lineTo = getLineTo(instance, key)
       if (lineTo) {

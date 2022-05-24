@@ -26,7 +26,6 @@ export function renderNodeStr (key: string, options: Required<NodeOptions>) {
 
 export function Node (options: NodeOptions = {}) {
   return (target: Object, propertyKey: string | symbol) => {
-    // target[name] = name
     const opt = defu<NodeOptions, NodeOptions>(options, {
       shape: 'square',
       text: propertyKey.toString()
