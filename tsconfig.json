@@ -15,7 +15,8 @@
     ],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "strictPropertyInitialization": false
   },
   "exclude": ["dist", "node_modules", "test/types"],
   "include": ["src/**/*", "types/**/*", "test/**/*"]

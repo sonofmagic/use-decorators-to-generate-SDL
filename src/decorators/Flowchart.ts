@@ -3,6 +3,8 @@ export abstract class BaseGraph {
   public abstract direction: string
 }
 
+const FlowchartMetadataKey = Symbol('Flowchart')
+
 declare type ClassDecorator = <TFunction extends Function>(
   target: TFunction
 ) => TFunction | void
@@ -14,11 +16,19 @@ interface FlowchartOptions {
 
 export function Flowchart (options?: FlowchartOptions): ClassDecorator {
   return (constructor) => {
-    constructor.prototype.type = 'flowchart' // options?.type
-    constructor.prototype.direction = options?.direction
-    // return class extends BaseGraph {
-    //   type = 'flowchart'
-    //   direction = options?.direction
-    // }
+    Reflect.defineMetadata(
+      FlowchartMetadataKey,
+      {
+        type: 'flowchart',
+        direction: options?.direction
+      },
+      constructor.prototype
+    )
   }
+}
+
+export function getFlowchart (
+  target: any
+): { type: string; direction: string } | undefined {
+  return Reflect.getMetadata(FlowchartMetadataKey, target)
 }
