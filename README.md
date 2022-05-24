@@ -29,7 +29,36 @@ C-->|One|D[Result 1]
 
 0line: `flowchart LR` 是描述图表的类型(`type`)和方向(`direction`)，显然这2个的值都是枚举
 
+1-4line: 描述了节点和流程线，其中节点定义了它的引用键值 `key`，节点的形状 `shape`(正方形，椭圆形，菱形...)，和节点文字 `text`，而流程线则定义了节点之间的指向 `to` 和流程线上的文字 `text`。值得注意的是，在 `1-4` 行中，关系的描述和节点和流程线的一起完成的！比如在 `3-4` 行中，`C` 指向了 `E` 和 `D`，它们就随着指向的确立，与节点的定义一起完成了，没有单独起一行 `append` 在最后，描述为 `E[Result 2]`。
 
+这里笔者给出一个 **等价** 的示例，来让你更好的理解我的意思。
+
+```
+flowchart LR
+A[Hard]-->|Text|B
+B(round)-->C
+C{Decision}-->|Two|E
+C{Decision}-->|One|D
+D[Result 1]
+E[Result 2]
+```
+
+从这个例子中你就可以得到这个 `SDL` 的一些特性了。
+
+### 设计装饰器
+
+通过上述的分析，我们就可以进行一个简单的设计：
+```js
+// 描述图表类型定义
+@Graph({ type:Enum, direction?:Enum })
+// 继承自 Graph，相当于固定了 type 的 Graph
+@Flowchart({ direction?:Enum }) 
+// 节点装饰
+@Node({ text?:string,shape?:Enum})
+// 流程线装饰
+@LineTo({ to:string,text?:string })
+// 其中非必填的，要不就是有默认值，要不就是不影响 mermaid 的生成验证
+```
 
 ## 参考文档
 
