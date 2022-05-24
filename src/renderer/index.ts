@@ -45,9 +45,10 @@ export class Renderer {
       {}
     )
     for (const [key, value] of Object.entries(entitiesMap)) {
+      const keyHasDefined = definedMap[key]
       let str: string = ''
       if (value) {
-        if (!definedMap[key]) {
+        if (!keyHasDefined) {
           str += `${key}${leftMap[value.shape]}${value.text}${
             rightMap[value.shape]
           }`
@@ -75,7 +76,7 @@ export class Renderer {
           })
       } else {
         // 单个节点
-        if (!definedMap[key]) {
+        if (!keyHasDefined) {
           res.push(str)
         }
       }
