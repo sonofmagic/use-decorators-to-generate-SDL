@@ -14,7 +14,8 @@
       { "transform": "typescript-transform-paths", "afterDeclarations": true }
     ],
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true
   },
   "exclude": ["dist", "node_modules", "test/types"],
   "include": ["src/**/*", "types/**/*", "test/**/*"]

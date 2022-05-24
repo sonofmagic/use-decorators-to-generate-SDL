@@ -27,15 +27,15 @@ export function LineTo (options: LineToOptions) {
   if (opt.to === undefined) {
     throw new TypeError('LineTo decorator requires a `to` property')
   }
-  return (target: Object, propertyKey: string | symbol) => {
-    const meta = getLineTo(target, propertyKey)
+  return (prototype: Object, propertyKey: string | symbol) => {
+    const meta = getLineTo(prototype, propertyKey)
     if (meta) {
       meta.push(options)
     } else {
       Reflect.defineMetadata(
         LineToMetadataKey,
         [options],
-        target.constructor.prototype,
+        prototype,
         propertyKey
       )
     }

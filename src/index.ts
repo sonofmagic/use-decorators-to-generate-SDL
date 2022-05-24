@@ -7,25 +7,25 @@ import { Renderer } from './renderer'
 @Flowchart({
   direction: 'LR'
 })
-class MyChart {
+export class MyChart {
   @Node({ text: 'Hard', shape: 'square' })
   @LineTo({ to: 'B', text: 'Text' })
-    A: string = 'aaaa'
+    A = null
 
   @Node({ text: 'round', shape: 'round' })
   @LineTo({ to: 'C' })
-    B = 'B'
+    B = null
 
   @Node({ text: 'Decision', shape: 'diamond' })
   @LineTo({ to: 'D', text: 'One' })
   @LineTo({ to: 'E', text: 'Two' })
-    C = 'C'
+    C = null
 
   @Node({ text: 'Result 1', shape: 'square' })
-    D = 'D'
+    D = null
 
   @Node({ text: 'Result 2', shape: 'square' })
-    E = 'E'
+    E = null
 }
 
 const renderer = new Renderer()
