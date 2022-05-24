@@ -25,12 +25,17 @@ export function renderNodeStr (key: string, options: Required<NodeOptions>) {
 }
 
 export function Node (options: NodeOptions = {}) {
-  return (prototype: Object, propertyKey: string | symbol) => {
+  return (prototype: Record<string, any>, propertyKey: string) => {
     const opt = defu<NodeOptions, NodeOptions>(options, {
       shape: 'square',
       text: propertyKey.toString()
     })
-    // target.constructor.prototype[propertyKey] = propertyKey
+    Reflect.defineProperty(prototype, propertyKey, {
+      value: options.text ?? propertyKey.toString(),
+      configurable: true,
+      enumerable: true,
+      writable: true
+    })
     Reflect.defineMetadata(NodeMetadataKey, opt, prototype, propertyKey)
   }
 }

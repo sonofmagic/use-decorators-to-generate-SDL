@@ -1,10 +1,10 @@
 import { getNode, renderNodeStr } from '@/decorators/Node'
 import { getLineTo, renderLineToStr } from '@/decorators/LineTo'
-
+import { BaseGraph } from '@/decorators/Flowchart'
 export class Renderer {
-  render (instance: Object): string {
+  render (instance: BaseGraph): string {
     const res: string[] = []
-    // @ts-ignore
+
     res.push([instance.type, instance.direction].join(' '))
     const keys = Reflect.ownKeys(instance).filter(
       (k) => typeof k === 'string'

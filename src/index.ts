@@ -1,9 +1,10 @@
 import 'reflect-metadata'
-import { Flowchart } from './decorators/Flowchart'
+import { Flowchart, BaseGraph } from './decorators/Flowchart'
 import { Node } from './decorators/Node'
 import { LineTo } from './decorators/LineTo'
 
 import { Renderer } from './renderer'
+
 @Flowchart({
   direction: 'LR'
 })
@@ -30,6 +31,6 @@ export class MyChart {
 
 const renderer = new Renderer()
 const chart = new MyChart()
-
-const str = renderer.render(chart)
+// @ts-ignore
+const str = renderer.render(chart as BaseGraph)
 console.log(str)
