@@ -1,4 +1,4 @@
-import { getNode, renderNodeStr, getNodeFields } from '@/decorators/Node'
+import { renderNodeStr, getNodeFields } from '@/decorators/Node'
 import { getLineTo, renderLineToStr } from '@/decorators/LineTo'
 import { BaseGraph, getFlowchart } from '@/decorators/Flowchart'
 export class Renderer {
@@ -6,15 +6,14 @@ export class Renderer {
     const res: string[] = []
     const chartOptions = getFlowchart(instance)!
     res.push([chartOptions.type, chartOptions.direction].join(' '))
-    const entities = getNodeFields(instance)
+    const entitiesMap = getNodeFields(instance)
 
-    for (const entity of entities) {
+    for (const [key, value] of Object.entries(entitiesMap)) {
       let str: string = ''
-      const node = getNode(instance, entity.key)
-      if (node) {
-        str += renderNodeStr(entity.key, node)
+      if (value) {
+        str += renderNodeStr(key, value)
       }
-      const lineTo = getLineTo(instance, entity.key)
+      const lineTo = getLineTo(instance, key)
       if (Array.isArray(lineTo)) {
         const lineStrs = renderLineToStr(lineTo)
         lineStrs.forEach((x) => {
