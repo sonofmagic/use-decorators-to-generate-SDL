@@ -7,12 +7,12 @@ export interface NodeOptions {
   shape?: 'diamond' | 'square' | 'round'
 }
 
-const leftMap = {
+export const leftMap = {
   diamond: '{',
   square: '[',
   round: '('
 }
-const rightMap = {
+export const rightMap = {
   diamond: '}',
   square: ']',
   round: ')'
