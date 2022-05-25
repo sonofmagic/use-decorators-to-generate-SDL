@@ -1,9 +1,4 @@
-import {
-  renderNodeStr,
-  getNodeFields,
-  leftMap,
-  rightMap
-} from '@/decorators/Node'
+import { getNodeFields, leftMap, rightMap } from '@/decorators/Node'
 import { getLineTo, renderLineToStr } from '@/decorators/LineTo'
 import { BaseGraph, getFlowchart } from '@/decorators/Flowchart'
 export class Renderer {
@@ -16,11 +11,16 @@ export class Renderer {
     for (const [key, value] of Object.entries(entitiesMap)) {
       let str: string = ''
       if (value) {
-        str += renderNodeStr(key, value)
+        str += `${key}${leftMap[value.shape]}${value.text}${
+          rightMap[value.shape]
+        }`
       }
       const lineTo = getLineTo(instance, key)
       if (Array.isArray(lineTo)) {
-        const lineStrs = renderLineToStr(lineTo)
+        const lineStrs = lineTo.map((options) => {
+          const { to, text } = options
+          return `-->${text ? `|${text}|` : ''}${to}`
+        })
         lineStrs.forEach((x) => {
           res.push(str + x)
         })
@@ -37,6 +37,7 @@ export class Renderer {
     const chartOptions = getFlowchart(instance)!
     res.push([chartOptions.type, chartOptions.direction].join(' '))
     const entitiesMap = getNodeFields(instance)
+    // 是否节点已经定义
     const definedMap = Object.keys(entitiesMap).reduce<Record<string, boolean>>(
       (acc, cur) => {
         acc[cur] = false

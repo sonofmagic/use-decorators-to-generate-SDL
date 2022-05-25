@@ -8,7 +8,7 @@
     - [实现装饰器](#实现装饰器)
       - [实现 `Flowchart`](#实现-flowchart)
       - [实现 `Node` 和 `LineTo`](#实现-node-和-lineto)
-    - [实现转化器](#实现转化器)
+    - [设计和实现转化器](#设计和实现转化器)
       - [原始转化器](#原始转化器)
       - [更好的转化器](#更好的转化器)
   - [参考文档](#参考文档)
@@ -201,12 +201,104 @@ export function LineTo (options: LineToOptions) {
 这样我们的装饰器部分就定义完成了，不过目前我们只是完成了 `Code First` 中类的字段关系的抽象，接下来如何把这样的关系，转化为特定的 `SDL` 呢？接下来我们来 **实现转化器**。
 
 
-### 实现转化器
+### 设计和实现转化器
+
+我们通过之前类的声明和装饰器的实现，已经把 `SDL` 通过编程语言的方式给描述了出来。接下来就需要把我们自定义的类，给转成 `SDL` 字符串了。
+
+首先我们先简单定义一下函数签名：
+
+```ts
+function render (instance: BaseGraph): string 
+```
+
+
 
 #### 原始转化器
-
+```ts
+function render (instance: BaseGraph): string {
+  const res: string[] = []
+  const chartOptions = getFlowchart(instance)!
+  res.push([chartOptions.type, chartOptions.direction].join(' '))
+  const entitiesMap = getNodeFields(instance)
+  for (const [key, value] of Object.entries(entitiesMap)) {
+    let str: string = ''
+    if (value) {
+      str += `${key}${leftMap[value.shape]}${value.text}${
+        rightMap[value.shape]
+      }`
+    }
+    const lineTo = getLineTo(instance, key)
+    if (Array.isArray(lineTo)) {
+      const lineStrs = lineTo.map((options) => {
+        const { to, text } = options
+        return `-->${text ? `|${text}|` : ''}${to}`
+      })
+      lineStrs.forEach((x) => {
+        res.push(str + x)
+      })
+    } else {
+      res.push(str)
+    }
+  }
+  return res.join('\n')
+}
+```
 #### 更好的转化器
 
+```ts
+function betterRender (instance: BaseGraph): string {
+  const res: string[] = []
+  const chartOptions = getFlowchart(instance)!
+  res.push([chartOptions.type, chartOptions.direction].join(' '))
+  const entitiesMap = getNodeFields(instance)
+  // 是否节点已经定义
+  const definedMap = Object.keys(entitiesMap).reduce<Record<string,boolean>>(
+    (acc, cur) => {
+      acc[cur] = false
+      return acc
+    },
+    {}
+  )
+  for (const [key, value] of Object.entries(entitiesMap)) {
+    const keyHasDefined = definedMap[key]
+    let str: string = ''
+    if (value) {
+      if (!keyHasDefined) {
+        str += `${key}${leftMap[value.shape]}${value.text}${
+          rightMap[value.shape]
+        }`
+        definedMap[key] = true
+      } else {
+        str += key
+      }
+    }
+    const lineTo = getLineTo(instance, key)
+    if (Array.isArray(lineTo)) {
+      lineTo
+        .map((options) => {
+          const { to, text } = options
+          const toNodeIsDefined = definedMap[to]
+          let tmp = `-->${text ? `|${text}|` : ''}${to}`
+          if (!toNodeIsDefined) {
+            const o = entitiesMap[to]
+            tmp += `${leftMap[o.shape]}${o.text}${rightMap[o.shape]}`
+            definedMap[to] = true
+          }
+          return tmp
+        })
+        .forEach((x) => {
+          res.push(str + x)
+        })
+    } else {
+      // 单个节点
+      if (!keyHasDefined) {
+        res.push(str)
+      }
+    }
+  }
+  return res.join('\n')
+}
+```
 
 ## 参考文档
 
