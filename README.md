@@ -11,7 +11,8 @@
     - [设计和实现转化器](#设计和实现转化器)
       - [观察&思考](#观察思考)
       - [实现原始转化器](#实现原始转化器)
-      - [基于原生转化器，实现更好的转化器](#基于原生转化器实现更好的转化器)
+      - [基于原始转化器，实现更好的转化器](#基于原始转化器实现更好的转化器)
+  - [尾言](#尾言)
   - [参考文档](#参考文档)
 
 ## 前言
@@ -133,7 +134,7 @@ export function Flowchart (options?: FlowchartOptions): ClassDecorator {
 抛开 `LineTo` 看 `Node` 的视角，可以发现它仅仅只用来描述字段的属性。在这种情形下使用:
 
 ```ts
-Reflect.defineMetadata(metadataKey, metadata, prototype, propertyKey)
+Reflect.defineMetadata(metadataKey, metadata, prototype, [propertyKey])
 ```
 
 把元数据定义在字段上，感觉就足够了。
@@ -226,45 +227,77 @@ B-->C{Decision}
 C-->|Two|E[Result 2]
 C-->|One|D[Result 1]
 ```
-1. 第一行: 一个 `left to right` 的方向绘制 `Flowchart`
-2. 第二行: 一个 `key` 为 `A` 内部文本是 `'Hard'`的矩形 `Node` , 指向了一个 `key` 为 `B` 内部文本是 `'round'`的椭圆形 `Node`,线的文本为 `'Text'`
-3. 第三行：一个 `key` 为 `B` 的 `Node` 指向了一个 `key` 为 `C` 内部文本是 `'Decision'`的菱形 `Node`
-4. 第四行：一个 `key` 为 `C` 的 `Node` 指向了一个 `key` 为 `E` 内部文本是 `'Result 2'`的矩形 `Node`,线的文本为 `'Two'`
-5. 第五行：一个 `key` 为 `C` 的 `Node` 指向了一个 `key` 为 `D` 内部文本是 `'Result 1'`的矩形 `Node`,线的文本为 `'One'`
+1. 第一行: 一个按 `left to right` 方向绘制 `Flowchart`
+2. 第二行: 一个 `key` 为 `A` 内部文本是 `'Hard'`的**矩形** `Node` , 指向了一个 `key` 为 `B` 内部文本是 `'round'`的**椭圆形** `Node`,线的文本为 `'Text'`
+3. 第三行：一个 `key` 为 `B` 的 `Node` 指向了一个 `key` 为 `C` 内部文本是 `'Decision'`的**菱形** `Node`
+4. 第四行：一个 `key` 为 `C` 的 `Node` 指向了一个 `key` 为 `E` 内部文本是 `'Result 2'`的**矩形** `Node`,线的文本为 `'Two'`
+5. 第五行：一个 `key` 为 `C` 的 `Node` 指向了一个 `key` 为 `D` 内部文本是 `'Result 1'`的**矩形** `Node`,线的文本为 `'One'`
 
 > 可以体会一下节点的定义，后定义的会覆盖前面定义的。比如第二行的B 和第三行的 B，尝试在第三行重新定义 B{MyTurn}。
 
 #### 实现原始转化器
+
+有了上面按行翻译的过程，我们就可以来编写转化器了。笔者直接 `Show Code`，思路写在了注释中。
+
 ```ts
 function render (instance: BaseGraph): string {
+  // 每一行都是一个字符串，所以结果用字符串数组来表示
   const res: string[] = []
+  // 获取class类型元数据
   const chartOptions = getFlowchart(instance)!
+  // 第一行，图表的定义
   res.push([chartOptions.type, chartOptions.direction].join(' '))
+  // 获取所有的节点
   const entitiesMap = getNodeFields(instance)
+  // 开始遍历
   for (const [key, value] of Object.entries(entitiesMap)) {
-    let str: string = ''
     if (value) {
+      let str: string = ''
+      // from 节点的定义 string
       str += `${key}${leftMap[value.shape]}${value.text}${
         rightMap[value.shape]
       }`
-    }
-    const lineTo = getLineTo(instance, key)
-    if (Array.isArray(lineTo)) {
-      const lineStrs = lineTo.map((options) => {
-        const { to, text } = options
-        return `-->${text ? `|${text}|` : ''}${to}`
-      })
-      lineStrs.forEach((x) => {
-        res.push(str + x)
-      })
-    } else {
-      res.push(str)
+      // 获取字段上的指向元数据
+      const lineTo = getLineTo(instance, key)
+      // 如果是数组，说明from节点，指向多个to节点
+      if (Array.isArray(lineTo)) {
+        // node 一对多 line
+        const lineStrs = lineTo.map((options) => {
+          const { to, text } = options
+          return `-->${text ? `|${text}|` : ''}${to}`
+        })
+        // 把一对多关系每个单独成行
+        lineStrs.forEach((x) => {
+          res.push(str + x)
+        })
+      } else {
+        // 没有 lineTo 的指向，直接把from节点的定义push进去
+        res.push(str)
+      }
     }
   }
+  // 返回结果
   return res.join('\n')
 }
 ```
-#### 基于原生转化器，实现更好的转化器
+
+这种转化方式是最容易理解的，同时它的生成结果类似于：
+
+```
+flowchart LR
+A[Hard]-->|Text|B
+B(round)-->C
+C{Decision}-->|Two|E
+C{Decision}-->|One|D
+D[Result 1]
+E[Result 2]
+```
+
+显然生成结果是满足`mermaid`语法，且能够成功展示的，但是这个结果并不是一个精简的结果。特别是第4-5行，2个重复的`C`节点定义，非常的冗余，所以接下来我们来改进原始转化器。
+
+#### 基于原始转化器，实现更好的转化器
+
+我们要在原始转化器的基础上，把节点的定义给合并，来减小冗余。方式见 `Code`
 
 ```ts
 function betterRender (instance: BaseGraph): string {
@@ -272,8 +305,8 @@ function betterRender (instance: BaseGraph): string {
   const chartOptions = getFlowchart(instance)!
   res.push([chartOptions.type, chartOptions.direction].join(' '))
   const entitiesMap = getNodeFields(instance)
-  // 是否节点已经定义
-  const definedMap = Object.keys(entitiesMap).reduce<Record<string,boolean>>(
+  // 构建Record<string, boolean> map 用来存储 是否节点已经定义过
+  const definedMap = Object.keys(entitiesMap).reduce<Record<string, boolean>>(
     (acc, cur) => {
       acc[cur] = false
       return acc
@@ -281,50 +314,66 @@ function betterRender (instance: BaseGraph): string {
     {}
   )
   for (const [key, value] of Object.entries(entitiesMap)) {
-    const keyHasDefined = definedMap[key]
-    let str: string = ''
     if (value) {
+      const keyHasDefined = definedMap[key]
+      let str: string = ''
       if (!keyHasDefined) {
+        // 没有定义过则定义 from 节点属性
         str += `${key}${leftMap[value.shape]}${value.text}${
           rightMap[value.shape]
         }`
+        // 声明已经定义过
         definedMap[key] = true
       } else {
+        // 定义过则直接使用 key 进行引用
         str += key
       }
-    }
-    const lineTo = getLineTo(instance, key)
-    if (Array.isArray(lineTo)) {
-      lineTo
-        .map((options) => {
-          const { to, text } = options
-          const toNodeIsDefined = definedMap[to]
-          let tmp = `-->${text ? `|${text}|` : ''}${to}`
-          if (!toNodeIsDefined) {
-            const o = entitiesMap[to]
-            tmp += `${leftMap[o.shape]}${o.text}${rightMap[o.shape]}`
-            definedMap[to] = true
-          }
-          return tmp
-        })
-        .forEach((x) => {
-          res.push(str + x)
-        })
-    } else {
-      // 单个节点
-      if (!keyHasDefined) {
-        res.push(str)
+      const lineTo = getLineTo(instance, key)
+      if (Array.isArray(lineTo)) {
+        lineTo
+          .map((options) => {
+            const { to, text } = options
+            const toNodeIsDefined = definedMap[to]
+            let tmp = `-->${text ? `|${text}|` : ''}${to}`
+            // 是否需要在指向时，定义 to 节点的属性
+            if (!toNodeIsDefined) {
+              // 没有定义过则去定义，并声明 to 节点已经被定义了
+              const o = entitiesMap[to]
+              tmp += `${leftMap[o.shape]}${o.text}${rightMap[o.shape]}`
+              definedMap[to] = true
+            }
+            return tmp
+          })
+          .forEach((x) => {
+            res.push(str + x)
+          })
+      } else {
+        // 只有单个节点时，假如已经在之前被定义过
+        // 那么此处不需要再次定义
+        // 有 line 的时候是需要 key 来进行引用的
+        if (!keyHasDefined) {
+          res.push(str)
+        }
       }
     }
   }
+
   return res.join('\n')
 }
 ```
 
+这样生成的结果中，就自动的把所有定义的冗余给自动合并了，从而满足了我们的需求。
+
+## 尾言
+
+通过这个示例，我们就能够把各种各样的 `SDL` 给映射成编程语言中的对象。从而实现一边编写代码，一边生成 `SDL` 的 `Code First` 模式。相比 `Schema First`，这个模式主要的优势，就是避免了编程语言语法之间的上下文切换。
+
+这种思想在许多的编程框架，场景中都有用到，当然编程的世界里没有银弹，在理解这种思想后，我们也要结合具体的业务场景，斟酌损益来进行实际的开发。
+
 ## 参考文档
 
-[Source Code(源码)](https://github.com/sonofmagic/use-decorators-to-generate-SDL)
+[Source Code (源码)](https://github.com/sonofmagic/use-decorators-to-generate-SDL)
 
 [mermaid-js](https://github.com/mermaid-js/mermaid)
 
-[Decorators(装饰器)](https://www.typescriptlang.org/docs/handbook/decorators.html)
+[Decorators (装饰器)](https://www.typescriptlang.org/docs/handbook/decorators.html)
