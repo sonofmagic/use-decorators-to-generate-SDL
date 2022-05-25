@@ -9,8 +9,9 @@
       - [实现 `Flowchart`](#实现-flowchart)
       - [实现 `Node` 和 `LineTo`](#实现-node-和-lineto)
     - [设计和实现转化器](#设计和实现转化器)
-      - [原始转化器](#原始转化器)
-      - [更好的转化器](#更好的转化器)
+      - [观察&思考](#观察思考)
+      - [实现原始转化器](#实现原始转化器)
+      - [基于原生转化器，实现更好的转化器](#基于原生转化器实现更好的转化器)
   - [参考文档](#参考文档)
 
 ## 前言
@@ -211,9 +212,29 @@ export function LineTo (options: LineToOptions) {
 function render (instance: BaseGraph): string 
 ```
 
+入参是一个 `BaseGraph` 的实例，返回值是一个 `string`，这个 `string` 可以直接通过 `mermaid-live-editor` 生成图表。
 
+#### 观察&思考
 
-#### 原始转化器
+在实现装饰器时，我们其实默认确定了一个规则： `Node` 装饰器，实际上和作用的 `Class Property` 是一对一的关系(使用多个`Node` 装饰器哎0B73E1B4.png字段上，会根据装饰器工厂的调用顺序，后面定义的，把前面定义给覆盖掉)，而 `LineTo` 装饰器，实际上和作用的 `Class Property` 是一对多的关系。
+
+这里我们回到刚刚那个例子，用我们定义好的装饰器来进行翻译：
+```
+flowchart LR
+A[Hard]-->|Text|B(round)
+B-->C{Decision}
+C-->|Two|E[Result 2]
+C-->|One|D[Result 1]
+```
+1. 第一行: 一个 `left to right` 的方向绘制 `Flowchart`
+2. 第二行: 一个 `key` 为 `A` 内部文本是 `'Hard'`的矩形 `Node` , 指向了一个 `key` 为 `B` 内部文本是 `'round'`的椭圆形 `Node`,线的文本为 `'Text'`
+3. 第三行：一个 `key` 为 `B` 的 `Node` 指向了一个 `key` 为 `C` 内部文本是 `'Decision'`的菱形 `Node`
+4. 第四行：一个 `key` 为 `C` 的 `Node` 指向了一个 `key` 为 `E` 内部文本是 `'Result 2'`的矩形 `Node`,线的文本为 `'Two'`
+5. 第五行：一个 `key` 为 `C` 的 `Node` 指向了一个 `key` 为 `D` 内部文本是 `'Result 1'`的矩形 `Node`,线的文本为 `'One'`
+
+> 可以体会一下节点的定义，后定义的会覆盖前面定义的。比如第二行的B 和第三行的 B，尝试在第三行重新定义 B{MyTurn}。
+
+#### 实现原始转化器
 ```ts
 function render (instance: BaseGraph): string {
   const res: string[] = []
@@ -243,7 +264,7 @@ function render (instance: BaseGraph): string {
   return res.join('\n')
 }
 ```
-#### 更好的转化器
+#### 基于原生转化器，实现更好的转化器
 
 ```ts
 function betterRender (instance: BaseGraph): string {
