@@ -1,5 +1,20 @@
 # Code First 探秘: 利用装饰器生成 SDL
 
+- [Code First 探秘: 利用装饰器生成 SDL](#code-first-探秘-利用装饰器生成-sdl)
+  - [前言](#前言)
+  - [生成 mermaid SDL](#生成-mermaid-sdl)
+    - [观察 mermaid SDL](#观察-mermaid-sdl)
+    - [设计装饰器](#设计装饰器)
+    - [实现装饰器](#实现装饰器)
+      - [实现 `Flowchart`](#实现-flowchart)
+      - [实现 `Node` 和 `LineTo`](#实现-node-和-lineto)
+    - [实现转化器](#实现转化器)
+      - [原始转化器](#原始转化器)
+      - [更好的转化器](#更好的转化器)
+  - [参考文档](#参考文档)
+
+## 前言
+
 在我们日常的开发中，经常会遇到许许多多的 `SDL`( `schema definition language` 模式定义语言)，它与我们使用的具体编程语言是无关的。它允许我们在不同平台之间共享模式定义文件，比如我们非常熟悉的 `GraphQL schema` 便是一种 `SDL`。
 
 那么说完了 `SDL` ，标题中的 `Code First (代码优先)` 是什么意思呢？ 笔者之前写 `.net` 的时候，使用过一段时间的 `ado.net EF`，这个框架里就可以使用 `Code First` 模式来和数据库进行交互。在这种模式下，数据库中表的字段属性，被编程语言中类的字段属性所描述，表与表之间的关系，也被编程语言中类的相互关系所描述。所以在这种模式下，我们仅仅需要操纵类派生的对象实例，就可以做到对数据库增删改查的功能了。
@@ -59,6 +74,113 @@ E[Result 2]
 @LineTo({ to:string,text?:string })
 // 其中非必填的，要不就是有默认值，要不就是不影响 mermaid 的生成验证
 ```
+
+那么我们就很容易把上述的 `mermaid SDL` 示例编写成一个类:
+
+```ts
+@Flowchart({ direction: 'LR' })
+class MyChart {
+  @Node({ text: 'Hard', shape: 'square' })
+  @LineTo({ to: 'B', text: 'Text' })
+  A: string
+  @Node({ text: 'round', shape: 'round' })
+  @LineTo({ to: 'C' })
+  B: string
+  @Node({ text: 'Decision', shape: 'diamond' })
+  @LineTo({ to: 'D', text: 'One' })
+  @LineTo({ to: 'E', text: 'Two' })
+  C: string
+  @Node({ text: 'Result 1', shape: 'square' })
+  D: string
+  @Node({ text: 'Result 2', shape: 'square' })
+  E: string
+}
+```
+
+接下来我们就聚焦在使用的装饰器的实现部分
+
+### 实现装饰器
+
+我们知道，装饰器的实现离不开 `reflect-metadata`，它给 `js` 添加了元数据(`Metadata`)的功能,也提供了对应的操纵`API`。接下来我们围绕 `Reflect` 来实现我们的装饰器。
+
+#### 实现 `Flowchart`
+
+这个装饰器是一个 `Class Decorator`，它接受的入参只有一个被装饰的 `class` 的构造函数 `constructor`，当然它的返回值也会替换原先类的声明。
+
+我们这个装饰器的目的，是为了声明 `class` 是一个 `Flowchart`，那么这里我们需要做的，便是给 `class` 打上标记，详见下方代码：
+
+```ts
+export function Flowchart (options?: FlowchartOptions): ClassDecorator {
+  return (constructor) => {
+    Reflect.defineMetadata(
+      FlowchartMetadataKey,
+      {
+        type: 'flowchart',
+        direction: options?.direction
+      },
+      constructor.prototype
+    )
+  }
+}
+```
+#### 实现 `Node` 和 `LineTo` 
+
+这两个都是 `Property Decorator`，它们接受的入参有两个，第一个是原型对象(如果是静态字段(`static`)，则为类的构造函数)，第二个是被装饰的属性名。
+
+在设计这 2 个装饰器的时候，我们会发现这 2 个装饰器之间存在着一些联动。
+
+抛开 `LineTo` 看 `Node` 的视角，可以发现它仅仅只用来描述字段的属性。在这种情形下使用:
+
+```ts
+Reflect.defineMetadata(metadataKey, metadata, prototype, propertyKey)
+```
+
+把元数据定义在字段上，感觉就足够了。
+
+但是一旦我们把 `LineTo` 也纳入考察范围，就会发现定义在字段上的元数据，并不能很好的表示字段之间的关系。这样我们在实现 `LineTo` 中的 `to` 参数的时候，针对节点的寻址就会变得非常麻烦。于是我们在实现 `Node` 的时候，便把元数据定义在原型对象上，而不是字段上：
+
+```ts
+// 粗略的实现
+export function Node (options: NodeOptions = {}) {
+  return (prototype: Record<string, any>, propertyKey: string) => {
+    const opt = defu<NodeOptions, Required<NodeOptions>>(options, {
+      shape: 'square',
+      text: propertyKey.toString()
+    })
+
+    const map = getNodeFields(prototype)
+    if (map) {
+      Reflect.defineProperty(map, propertyKey, {
+        value: opt,
+        configurable: true,
+        enumerable: true,
+        writable: true
+      })
+    } else {
+      Reflect.defineMetadata(
+        NodeFieldsMetadataKey,
+        {
+          [propertyKey]: opt
+        },
+        prototype
+      )
+    }
+  }
+}
+```
+这样我们就保存了一份 `Map<Node>` 在元数据里，这给后面 `LineTo` 的寻址和验证，提供了实现基础。
+
+关于这点，我用前端熟悉的语言来举个例子：
+
+在 `vue element-ui` 中有 `el-form` 和 `el-form-item` 组件，`el-form-item` 在组件挂载时，会把组件实例给附加到父级的 `el-form` 中去，这样开发者就能够通过直接操纵 `el-form` 组件实例，来操作所有内部的 `el-form-item` 的组件实例。
+
+
+### 实现转化器
+
+#### 原始转化器
+
+#### 更好的转化器
+
 
 ## 参考文档
 
