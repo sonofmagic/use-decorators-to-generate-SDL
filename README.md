@@ -137,22 +137,25 @@ export function Flowchart (options?: FlowchartOptions): ClassDecorator {
 
 这两个都是 `Property Decorator`。这种类型的装饰器，接受的入参有两个，第一个是原型对象(如果是静态`static`字段，则为类的构造函数)，第二个是被装饰的属性名。
 
-在实现这 2 个装饰器的前，我们会发现这 2 个装饰器之间存在着一些关系。
-
-抛开 `LineTo` 看 `Node` 的视角，可以发现它仅仅只用来描述字段的属性。在这种情形下使用:
+我们单独只看 `Node` 的话，可以发现它的用处，主要用来定义类字段的属性。显然此时把元数据定义在字段上，似乎就满足我们的需求了。
 
 ```ts
-Reflect.defineMetadata(metadataKey, metadata, prototype, [propertyKey])
+Reflect.defineMetadata(metadataKey, metadata, prototype, propertyKey)
 ```
+<!-- 在这种情形下使用:
+抛开 `LineTo` 看 `Node` 的视角， -->
 
-把元数据定义在字段上，感觉就足够了。
+<!-- 把元数据定义在字段上，感觉就足够了。 -->
 
-但是一旦我们把 `LineTo` 也纳入考察范围，就会发现定义在字段上的元数据，并不能很好的表示字段之间的关系。这样我们在实现 `LineTo` 中的 `to` 参数的时候，针对节点的寻址就会变得非常麻烦。于是我们在实现 `Node` 的时候，便把元数据定义在原型对象上，而不是字段上：
+但是一旦我们把 `LineTo` 也纳入考察范围，就会发现定义在字段上的元数据，并不能很好的表示字段之间的联系。而且我们在实现 `LineTo` 中的 `to` 参数的时候，针对节点的寻址就会变得非常麻烦。所有回过头看，在实现 `Node` 的时候，就把元数据定义在原型对象上，而不是字段上。
+
+<!-- 在实现这**2**个装饰器的前，我们会发现这**2**个装饰器之间存在着一些关系。 -->
 
 ```ts
 // 粗略的实现
 export function Node (options: NodeOptions = {}) {
   return (prototype: Record<string, any>, propertyKey: string) => {
+    // 合并 options
     const opt = defu<NodeOptions, Required<NodeOptions>>(options, {
       shape: 'square',
       text: propertyKey.toString()
@@ -160,6 +163,7 @@ export function Node (options: NodeOptions = {}) {
 
     const fields = getNodeFields(prototype)
     if (fields) {
+      // 添加键值对
       Reflect.defineProperty(fields, propertyKey, {
         value: opt,
         configurable: true,
@@ -167,6 +171,7 @@ export function Node (options: NodeOptions = {}) {
         writable: true
       })
     } else {
+      // 初始化 object map
       Reflect.defineMetadata(
         NodeFieldsMetadataKey,
         {
@@ -178,25 +183,31 @@ export function Node (options: NodeOptions = {}) {
   }
 }
 ```
-这样我们就保存了一份 `Map<Node>` 在元数据里，这给后面 `LineTo` 的寻址和验证，提供了实现基础。
+这样我们就保存了一份 `Record<string,Node>` 在元数据里，这给后面 `LineTo` 的寻址和验证，提供了实现基础。
 
-关于这点，我用前端熟悉的语言来举个例子：
+> 前端视角来解释：在 `vue element-ui` 中有 `el-form` 和 `el-form-item` 组件，`el-form-item` 在组件挂载时，会把组件实例给附加到父级的 `el-form` 中去，这样开发者就能够通过直接操纵 `el-form` 组件实例，来操作所有内部的 `el-form-item` 的组件实例。这其实有异曲同工之妙。
 
-在 `vue element-ui` 中有 `el-form` 和 `el-form-item` 组件，`el-form-item` 在组件挂载时，会把组件实例给附加到父级的 `el-form` 中去，这样开发者就能够通过直接操纵 `el-form` 组件实例，来操作所有内部的 `el-form-item` 的组件实例。
+
+<!-- 关于这点，我用前端熟悉的语言来举个例子： -->
+
+
 
 接下来我们来实现 `LineTo`，由于一个节点和连接线是一对多的关系，所以我们可以用数组来保存这种关系：
 
 ```ts
 export function LineTo (options: LineToOptions) {
   const opt = defu<LineToOptions, Partial<LineToOptions>>(options, {})
+  // 验证参数必填
   if (opt.to === undefined) {
     throw new TypeError('LineTo decorator requires a `to` property')
   }
   return (prototype: Object, propertyKey: string | symbol) => {
     const meta = getLineTo(prototype, propertyKey)
     if (meta) {
+      // 数组添加值
       meta.push(options)
     } else {
+      // 初始化数组
       Reflect.defineMetadata(
         LineToMetadataKey,
         [options],
@@ -208,7 +219,7 @@ export function LineTo (options: LineToOptions) {
 }
 ```
 
-这样我们的装饰器部分就定义完成了，不过目前我们只是完成了 `Code First` 中类的字段关系的抽象，接下来如何把这样的关系，转化为特定的 `SDL` 呢？接下来我们来 **实现转化器**。
+这样我们的装饰器部分就定义完成了，不过目前我们只是完成了 `Code First` 中类的字段关系的抽象，接下来如何把这样的关系，转化为特定的 `SDL` 呢？接下来我们来 **设计和实现转化器**。
 
 
 ### 设计和实现转化器
