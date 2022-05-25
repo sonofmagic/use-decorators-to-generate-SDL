@@ -148,9 +148,9 @@ export function Node (options: NodeOptions = {}) {
       text: propertyKey.toString()
     })
 
-    const map = getNodeFields(prototype)
-    if (map) {
-      Reflect.defineProperty(map, propertyKey, {
+    const fields = getNodeFields(prototype)
+    if (fields) {
+      Reflect.defineProperty(fields, propertyKey, {
         value: opt,
         configurable: true,
         enumerable: true,
@@ -173,6 +173,32 @@ export function Node (options: NodeOptions = {}) {
 关于这点，我用前端熟悉的语言来举个例子：
 
 在 `vue element-ui` 中有 `el-form` 和 `el-form-item` 组件，`el-form-item` 在组件挂载时，会把组件实例给附加到父级的 `el-form` 中去，这样开发者就能够通过直接操纵 `el-form` 组件实例，来操作所有内部的 `el-form-item` 的组件实例。
+
+接下来我们来实现 `LineTo`，由于一个节点和连接线是一对多的关系，所以我们可以用数组来保存这种关系：
+
+```ts
+export function LineTo (options: LineToOptions) {
+  const opt = defu<LineToOptions, Partial<LineToOptions>>(options, {})
+  if (opt.to === undefined) {
+    throw new TypeError('LineTo decorator requires a `to` property')
+  }
+  return (prototype: Object, propertyKey: string | symbol) => {
+    const meta = getLineTo(prototype, propertyKey)
+    if (meta) {
+      meta.push(options)
+    } else {
+      Reflect.defineMetadata(
+        LineToMetadataKey,
+        [options],
+        prototype,
+        propertyKey
+      )
+    }
+  }
+}
+```
+
+这样我们的装饰器部分就定义完成了，不过目前我们只是完成了 `Code First` 中类的字段关系的抽象，接下来如何把这样的关系，转化为特定的 `SDL` 呢？接下来我们来 **实现转化器**。
 
 
 ### 实现转化器
